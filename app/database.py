@@ -15,7 +15,7 @@ def init_db():
     conn.close()
 
 def add_user(username, password, secret_question, secret_answer):
-    conn = sqlite3.connect('users.db')
+    conn = sqlite3.connect('database/users.db')
     c = conn.cursor()
     hashed_password = bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt())
     hashed_answer = bcrypt.hashpw(secret_answer.encode('utf-8'), bcrypt.gensalt())
@@ -25,7 +25,7 @@ def add_user(username, password, secret_question, secret_answer):
     conn.close()
 
 def verify_user(username, password):
-    conn = sqlite3.connect('users.db')
+    conn = sqlite3.connect('database/users.db')
     c = conn.cursor()
     c.execute("SELECT password FROM users WHERE username=?", (username,))
     result = c.fetchone()
@@ -35,7 +35,7 @@ def verify_user(username, password):
     return False
 
 def get_secret_question(username):
-    conn = sqlite3.connect('users.db')
+    conn = sqlite3.connect('database/users.db')
     c = conn.cursor()
     c.execute("SELECT secret_question FROM users WHERE username=?", (username,))
     result = c.fetchone()
@@ -43,7 +43,7 @@ def get_secret_question(username):
     return result[0] if result else None
 
 def verify_secret_answer(username, answer):
-    conn = sqlite3.connect('users.db')
+    conn = sqlite3.connect('database/users.db')
     c = conn.cursor()
     c.execute("SELECT secret_answer FROM users WHERE username=?", (username,))
     result = c.fetchone()
@@ -53,7 +53,7 @@ def verify_secret_answer(username, answer):
     return False
 
 def update_password(username, new_password):
-    conn = sqlite3.connect('users.db')
+    conn = sqlite3.connect('database/users.db')
     c = conn.cursor()
     hashed_password = bcrypt.hashpw(new_password.encode('utf-8'), bcrypt.gensalt())
     c.execute("UPDATE users SET password=? WHERE username=?", (hashed_password, username))
