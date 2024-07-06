@@ -1,8 +1,13 @@
 import sqlite3
 import bcrypt
 
+import os
+
+# Create the database directory if it doesn't exist
+os.makedirs('database', exist_ok=True)
+
 def init_db():
-    conn = sqlite3.connect('users.db')
+    conn = sqlite3.connect('database/users.db')
     c = conn.cursor()
     c.execute('''CREATE TABLE IF NOT EXISTS users
                  (username TEXT PRIMARY KEY, password TEXT, secret_question TEXT, secret_answer TEXT)''')

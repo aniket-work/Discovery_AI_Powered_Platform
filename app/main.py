@@ -11,7 +11,7 @@ init_db()
 # Set page config
 st.set_page_config(page_title="My Streamlit App", layout="wide")
 
-# Custom CSS for footer and cards
+# Custom CSS for footer, cards, and button alignment
 st.markdown(
     """
     <style>
@@ -39,6 +39,9 @@ st.markdown(
         border-radius: 5px;
         margin-bottom: 10px;
         background-color: #f0f2f6;
+    }
+    .stButton > button {
+        width: 100%;
     }
     </style>
     """,

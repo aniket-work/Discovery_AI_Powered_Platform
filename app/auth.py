@@ -6,22 +6,27 @@ def login_page():
     st.title("Login")
     username = st.text_input("Username")
     password = st.text_input("Password", type="password")
-    if st.button("Login"):
-        if verify_user(username, password):
-            st.session_state.logged_in = True
-            st.session_state.username = username
-            st.success("Logged in successfully!")
+
+    col1, col2, col3 = st.columns(3)
+    with col1:
+        if st.button("Login", use_container_width=True):
+            if verify_user(username, password):
+                st.session_state.logged_in = True
+                st.session_state.username = username
+                st.success("Logged in successfully!")
+                st.experimental_rerun()
+            else:
+                st.error("Invalid username or password")
+
+    with col2:
+        if st.button("Forgot Password", use_container_width=True):
+            st.session_state.page = "forgot_password"
             st.experimental_rerun()
-        else:
-            st.error("Invalid username or password")
 
-    if st.button("Forgot Password"):
-        st.session_state.page = "forgot_password"
-        st.experimental_rerun()
-
-    if st.button("Sign Up"):
-        st.session_state.page = "signup"
-        st.experimental_rerun()
+    with col3:
+        if st.button("Sign Up", use_container_width=True):
+            st.session_state.page = "signup"
+            st.experimental_rerun()
 
 
 def signup_page():
