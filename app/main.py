@@ -1,11 +1,13 @@
 import streamlit as st
-from database import init_db
-from auth import login_page, signup_page, forgot_password_page
 import os
 import pandas as pd
 from streamlit_option_menu import option_menu
+from embeddings import create_embeddings
+from database import init_db
+from auth import login_page, signup_page, forgot_password_page
+from utils import retrieve_relevant_files
 
-# Initialize the database
+# Initialize the datastore
 init_db()
 
 # Set page config
@@ -55,6 +57,9 @@ if 'logged_in' not in st.session_state:
 if 'page' not in st.session_state:
     st.session_state.page = 'login'
 
+if 'space_type' not in st.session_state:
+    st.session_state.space_type = 'File-based'
+
 # Main app logic
 if not st.session_state.logged_in:
     if st.session_state.page == 'login':
@@ -64,7 +69,6 @@ if not st.session_state.logged_in:
     elif st.session_state.page == 'forgot_password':
         forgot_password_page()
 else:
-    # Your existing app code goes here
     st.header("My Streamlit App")
 
     # Sidebar with icons
@@ -98,13 +102,13 @@ else:
         return None
 
 
+    # Show existing spaces
+    spaces_folder = "spaces"
+    existing_spaces = os.listdir(spaces_folder) if os.path.exists(spaces_folder) else []
+
     # Main content
     if selected == "Create Space":
         st.subheader("Create Space")
-
-        # Show existing spaces
-        spaces_folder = "spaces"
-        existing_spaces = os.listdir(spaces_folder) if os.path.exists(spaces_folder) else []
 
         st.write("Existing Spaces:")
         cols = st.columns(3)
@@ -122,27 +126,35 @@ else:
 
         # Create new space
         st.subheader("Create New Space")
-        space_name = st.text_input("Space Name")
-        space_type = st.radio("Space Type", ["File-based", "Query-based"])
-        space_description = st.text_area("Space Description")
+        space_name = st.text_input("Space Name", key="create_space_name")
+        space_type = st.radio("Space Type", ["File-based", "Query-based", "Notes"], key="create_space_type",
+                              index=["File-based", "Query-based", "Notes"].index(st.session_state.space_type))
+        space_description = st.text_area("Space Description", key="create_space_description")
 
-        if space_type == "Query-based":
-            query = st.text_area("Enter your query")
-            if st.button("Create Query-based Space"):
+        st.session_state.space_type = space_type
+
+        if space_type in ["Query-based", "Notes"]:
+            query_or_notes = st.text_area("Enter your query or notes", key="create_space_query_or_notes")
+            if st.button("Create Space", key="create_query_or_notes_space_button"):
                 if space_name and space_description:
                     new_space_path = os.path.join(spaces_folder, space_name)
                     os.makedirs(new_space_path, exist_ok=True)
-                    with open(os.path.join(new_space_path, f"{space_name}.txt"), "w") as f:
-                        f.write(query)
+                    file_extension = "txt"
+                    with open(os.path.join(new_space_path, f"{space_name}.{file_extension}"), "w") as f:
+                        f.write(query_or_notes)
                     with open(os.path.join(new_space_path, "space_info.txt"), "w") as f:
                         f.write(f"{space_name}\n{space_type}\n{space_description}")
-                    st.success(f"Created query-based space: {space_name}")
+
+                    # Create embeddings for query or notes-based space
+                    create_embeddings(space_name, query_or_notes, is_file_based=False)
+
+                    st.success(f"Created {space_type.lower()}-based space: {space_name}")
                 else:
                     st.error("Please provide a space name and description")
 
-        else:  # File-based
-            uploaded_file = st.file_uploader("Choose a CSV file", type="csv")
-            if uploaded_file is not None:
+        elif space_type == "File-based":
+            uploaded_file = st.file_uploader("Choose a CSV file", type="csv", key="create_space_file_upload")
+            if uploaded_file is not None and st.button("Create Space", key="create_file_space_button"):
                 if space_name and space_description:
                     new_space_path = os.path.join(spaces_folder, space_name)
                     os.makedirs(new_space_path, exist_ok=True)
@@ -151,6 +163,10 @@ else:
                     df.to_csv(os.path.join(new_space_path, file_name), index=False)
                     with open(os.path.join(new_space_path, "space_info.txt"), "w") as f:
                         f.write(f"{space_name}\n{space_type}\n{space_description}")
+
+                    # Create embeddings for file-based space
+                    create_embeddings(space_name, df, is_file_based=True)
+
                     st.success(f"Created file-based space: {space_name}")
 
                     # Display the contents of the uploaded file
@@ -169,7 +185,24 @@ else:
 
     elif selected == "Search":
         st.subheader("Search")
-        st.write("This is the search page.")
+        # Dropdown for selecting a space
+        selected_space = st.selectbox("Select a Space", existing_spaces)
+
+        if selected_space:
+            query = st.text_input("Enter your search query:")
+            if query:
+                # Use FAISS to retrieve relevant files
+                retrieved_content = retrieve_relevant_files(selected_space, query)
+                st.write("Relevant Content:")
+                for content in retrieved_content:
+                    st.markdown(f"**Source File:** {content['source_file']}")
+                    st.write(content['short_content'])
+                    if content['file_type'] == 'pdf':
+                        st.markdown(f"[View PDF](path/to/pdf/{content['source_file']})")
+                    elif content['file_type'] == 'csv':
+                        st.dataframe(pd.read_csv(content['file_path']))
+                    else:  # Text files
+                        st.text(content['full_content'])
 
     elif selected == "Settings":
         st.subheader("Settings")

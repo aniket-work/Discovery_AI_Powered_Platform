@@ -3,3 +3,7 @@ pandas
 streamlit-option-menu
 bcrypt
 pandas
+langchain
+langchain-community
+sentence-transformers
+faiss-cpu

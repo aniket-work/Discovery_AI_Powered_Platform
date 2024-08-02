@@ -72,6 +72,6 @@ The project consists of the following components:
 
    ```bash   
    # Run UI
-   streamlit run app.py
+   streamlit run app\main.py
    ```  
 
